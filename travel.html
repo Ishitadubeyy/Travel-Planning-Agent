@@ -1,1 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Travel Planning Agent</title>
+  <style>
+    :root {
+      --bg:#05060f;
+      --panel:#0f1424;
+      --glass:#1a2234;
+      --glass2:#1a2840;
+      --border:#32d7ff;
+      --soft:#8cb9ff;
+      --accent:#57e6ff;
+      --text:#e4eeff;
+      --muted:#8ca5cc;
+      --danger:#ff6f6f;
+      --radius:18px;
+      --shadow:0 20px 50px rgba(0,0,0,.5);
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family: "Inter","Segoe UI",sans-serif;
+      background: radial-gradient(circle at 30% 20%, #12254b, #05060f 60%);
+      color: var(--text);
+      min-height:100vh;
+    }
+    .app{
+      width:min(1100px,94vw);
+      margin:2rem auto;
+      display:grid;
+      gap:1rem;
+      padding:1rem;
+    }
+    h1{
+      margin:0 0 0.6rem;
+      font-size:clamp(1.6rem,2.2vw,2.2rem);
+      color:#96b4eb;
+      text-shadow:0 0 18px rgba(102,199,255,.35);
+    }
+    .glass{
+      background:linear-gradient(135deg, rgba(20,32,58,.72), rgba(21,34,62,.72));
+      border:1px solid rgba(180,230,255,.22);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow), inset 0 0 1px rgba(120,200,255,.2);
+      backdrop-filter: blur(8px);
+      padding:1.1rem;
+      position:relative;
+      overflow:hidden;
+    }
+    .glass:before{
+      content:""; pointer-events:none;
+      position:absolute; inset:0;
+      background: linear-gradient(130deg, rgba(126,234,255,.18), rgba(76,119,183,0));
+      mix-blend-mode:color-dodge;
+      transform: translateX(-30%) translateY(-20%) rotate(15deg);
+    }
+    .panel-head{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:.7rem;
+      flex-wrap:wrap;
+      margin-bottom:.75rem;
+    }
+    .badge{
+      font-size:.78rem; padding:.25rem .7rem; border-radius:999px;
+      background:linear-gradient(120deg, rgba(39,204,255,.28), rgba(99,255,216,.22));
+      color:#e6fcff;
+      border:1px solid rgba(126,233,255,.34);
+    }
+    .top-controls{
+      display:grid; grid-template-columns:1fr auto auto; gap:.7rem;
+      margin:1rem 0 1.1rem;
+      align-items:center;
+    }
+    .top-controls input{
+      width:100%; font-size:1rem; border:1px solid rgba(255,255,255,.2);
+      border-radius:10px; background:rgba(17,23,35,.8); color:#eef0ff;
+      padding:.74rem .9rem;
+      outline:none;
+    }
+    .btn{
+      border:none; cursor:pointer; display:inline-flex; gap:.4rem; align-items:center;
+      justify-content:center; min-width:110px; border-radius:12px;
+      font-weight:600; color:#ecf2ff;
+      padding:.65rem .9rem; transition:.25s ease;
+      box-shadow:0 10px 20px rgba(0,0,0,.38);
+      text-transform: uppercase; letter-spacing:.04em; font-size:.85rem;
+    }
+    .btn:hover{transform:translateY(-1px); box-shadow:0 12px 24px rgba(0,0,0,.48);}
+    .btn-run{background: linear-gradient(120deg,#4ecbfa,#78f7cb);}
+    .btn-clear{background: linear-gradient(120deg,#ff4c62,#f7a0b3);}
+    .sections{display:grid; grid-template-columns:1fr 290px; gap:1rem;}
+    .box{
+      background:rgba(12,18,33,.78); border:1px solid rgba(100,150,255,.16);
+      border-radius: var(--radius); padding:1rem; min-height:230px;
+      box-shadow:0 15px 35px rgba(0,0,0,.35);
+    }
+    .box h2{margin-top:0; color:#a6caff; font-size:1.05rem;}
+    .steps{display:flex; flex-direction:column; gap:.7rem;}
+    .step{
+      border-radius:14px; padding:.72rem; position:relative;
+      background:linear-gradient(135deg, rgba(7,11,21,.72), rgba(13,20,38,.76));
+      border:1px solid rgba(133,190,255,.2);
+      animation:fadeIn 0.36s ease forwards;
+      opacity:0;
+    }
+    .step.visible{opacity:1;}
+    .step h3{font-size:.9rem; margin:.1rem 0 .25rem; color: #d4efff;}
+    .step p{font-size:.84rem; margin:.2rem 0; color:#d3e7ff;}
+    .step .entry{font-weight:600; color:#8bdcff;}
+    .step strong{color:#8ab2ff;}
+    .status{
+      display:flex; align-items:center; gap:.45rem;
+      font-size:.82rem; margin-bottom:.65rem;
+      color:#b5d8ff;
+    }
+    .status span{padding:.16rem .45rem; border-radius:999px;
+      border:1px solid rgba(165,233,255,.42); background:rgba(80,174,255,.1);}
+    .tools-list{display:grid; gap:.55rem;}
+    .tool{
+      border-radius:12px; border:1px solid rgba(132,198,255,.24);
+      padding:.68rem; display:flex; justify-content:space-between; align-items:center;
+      background:rgba(12,18,31,.68); transition:.24s;
+    }
+    .tool.active{border-color:rgba(110,255,168,.4); background:rgba(66,135,255,.28);}
+    .tool-text{display:flex; flex-direction:column;}
+    .tool-name{font-weight:700; margin:0; color:#d8f5ff;}
+    .tool-desc{font-size:.78rem; margin:0; color:#9abcea;}
+    .final-out{white-space:pre-line; font-size:.95rem; color:#e7f7ff; background:rgba(11,17,31,.75);
+      border:1px solid rgba(124,197,255,.21); padding:1rem; border-radius:14px; min-height:108px;}
 
+    .loader{
+      margin:.85rem auto 0; height:42px; display:flex; justify-content:center; align-items:center;
+      gap:.38rem;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%; background:#69dfff; animation:jump .7s ease-in-out infinite;
+      opacity:.8;
+    }
+    .dot:nth-child(2){animation-delay:.1s;}
+    .dot:nth-child(3){animation-delay:.2s;}
+    .dot:nth-child(4){animation-delay:.3s;}
+    @keyframes jump{0%,100%{transform:translateY(0);opacity:.65;}50%{transform:translateY(-9px);opacity:1;}}
+    @keyframes fadeIn{from{transform:translateY(6px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+    @media (max-width:940px){.sections{grid-template-columns:1fr;}.tools-side{order:-1;}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="glass">
+      <div class="panel-head">
+        <h1>AI Travel Planning Agent</h1>
+        <span class="badge">Futuristic Travel UI</span>
+      </div>
+      <div class="top-controls">
+        <input id="userInput" type="text" placeholder="Plan a trip, budget, days, destination..."/>
+        <button id="runBtn" class="btn btn-run">Run Agent</button>
+        <button id="clearBtn" class="btn btn-clear">Clear</button>
+      </div>
+      <div id="loader" class="loader" style="display:none;">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+
+    <div class="sections">
+      <div class="box">
+        <h2>1. Agent Reasoning</h2>
+        <div id="stepContainer" class="steps"></div>
+      </div>
+
+      <div class="box tools-side">
+        <h2>2. Tools Panel</h2>
+        <div class="tools-list">
+          <div id="toolSearch" class="tool">
+            <div class="tool-text"><p class="tool-name">Search Tool</p><p class="tool-desc">Use for planning/travel/search tasks</p></div>
+            <span>🔍</span>
+          </div>
+          <div id="toolCalc" class="tool">
+            <div class="tool-text"><p class="tool-name">Calculator Tool</p><p class="tool-desc">Use for numeric and math queries</p></div>
+            <span>🧮</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="box" style="grid-column:1/-1;">
+        <h2>3. Final Response</h2>
+        <div id="finalOutput" class="final-out">Awaiting query...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const userInput = document.getElementById('userInput');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const loader = document.getElementById('loader');
+    const stepContainer = document.getElementById('stepContainer');
+    const finalOutput = document.getElementById('finalOutput');
+    const toolSearch = document.getElementById('toolSearch');
+    const toolCalc = document.getElementById('toolCalc');
+
+    const travelDestinations = ['goa','manali','kerala','shimla','udaipur','jaipur','mumbai','delhi','agra','darjeeling','coorg','rishikesh'];
+    const travelTypes = ['family','solo','student','couple','friends'];
+
+    function setActiveTool(search=false, calc=false) {
+      toolSearch.classList.toggle('active', search);
+      toolCalc.classList.toggle('active', calc);
+    }
+
+    function capitalize(value) {
+      return value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : value;
+    }
+
+    function parseNumber(value) {
+      if (!value) return null;
+      const digits = value.replace(/[^0-9]/g, '');
+      return digits ? Number(digits) : null;
+    }
+
+    function extractDestination(text) {
+      for (const dest of travelDestinations) {
+        if (text.includes(dest)) return capitalize(dest);
+      }
+      const toMatch = text.match(/\bto\s+([a-zA-Z]{3,})\b/);
+      if (toMatch) return capitalize(toMatch[1]);
+      const inMatch = text.match(/\bin\s+([a-zA-Z]{3,})\b/);
+      if (inMatch) return capitalize(inMatch[1]);
+      return null;
+    }
+
+    function extractDays(text) {
+      const match = text.match(/(\d+)\s*(?:day|days|night|nights)\b/);
+      if (match) return Number(match[1]);
+      const forMatch = text.match(/for\s+(\d+)\b/);
+      return forMatch ? Number(forMatch[1]) : null;
+    }
+
+    function extractBudget(text) {
+      const patterns = [
+        /₹\s?([\d,]+)/,
+        /rs\.?\s*([\d,]+)/,
+        /under\s+₹?\s*([\d,]+)/,
+        /within\s+₹?\s*([\d,]+)/,
+        /budget\s*(?:of)?\s*₹?\s*([\d,]+)/
+      ];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return parseNumber(match[1]);
+      }
+      return null;
+    }
+
+    function detectTravelType(text) {
+      for (const type of travelTypes) {
+        if (text.includes(type)) return type;
+      }
+      return null;
+    }
+
+    function isTravelQuery(text) {
+      return /\b(trip|travel|hotel|places|visit|plan|tour|itinerary|destination)\b/.test(text);
+    }
+
+    function isMathQuery(text) {
+      return /\bcalculate\b|\d+\s*[+\-*/]\s*\d+|%/.test(text);
+    }
+
+    function addStep(thought, action, input, observation) {
+      const card = document.createElement('article');
+      card.className = 'step';
+      card.innerHTML = `
+        <div class="status"><span>thinking</span></div>
+        <h3>Thought</h3><p class="entry">${thought}</p>
+        <h3>Action</h3><p class="entry">${action}</p>
+        <h3>Action Input</h3><p class="entry">${input}</p>
+        <h3>Observation</h3><p class="entry">${observation}</p>
+      `;
+      stepContainer.appendChild(card);
+      requestAnimationFrame(() => card.classList.add('visible'));
+    }
+
+    function buildBudgetEstimate(days, type) {
+      const hotelRates = {
+        family: 2600,
+        couple: 2100,
+        student: 1500,
+        solo: 1700,
+        friends: 1800,
+        leisure: 2000
+      };
+      const foodRates = {
+        family: 950,
+        couple: 800,
+        student: 650,
+        solo: 700,
+        friends: 720,
+        leisure: 800
+      };
+      const travelRates = {
+        family: 1400,
+        couple: 1200,
+        student: 1000,
+        solo: 1100,
+        friends: 1200,
+        leisure: 1200
+      };
+      const hotel = (hotelRates[type] || hotelRates.leisure) * days;
+      const travel = (travelRates[type] || travelRates.leisure) + Math.max(0, days - 2) * 250;
+      const food = (foodRates[type] || foodRates.leisure) * days;
+      return { hotel, travel, food, total: hotel + travel + food };
+    }
+
+    function getHighlights(destination, days) {
+      const key = destination.toLowerCase();
+      if (key === 'goa') {
+        const highlights = [
+          'Baga Beach sunrise and water sports',
+          'Anjuna flea market and Vagator sunset',
+          'Fort Aguada coastal views',
+          'Old Goa churches and spice plantation tour',
+          'Beach shack dinner with local seafood'
+        ];
+        return highlights.slice(0, Math.min(days + 1, highlights.length));
+      }
+      const generic = [
+        `local must-see sights in ${destination}`,
+        'popular restaurants and street food areas',
+        'key cultural landmarks with relaxed exploration',
+        'efficient local transport between highlights',
+        'a flexible day for shopping or extra relaxation'
+      ];
+      return generic.slice(0, Math.min(days + 1, generic.length));
+    }
+
+    function buildItinerary(destination, days, type) {
+      const highlights = getHighlights(destination, days);
+      const itinerary = [];
+      for (let day = 1; day <= days; day += 1) {
+        const activity = highlights[day - 1] || 'free time for local exploration and shopping';
+        itinerary.push(`Day ${day}: ${activity}.`);
+      }
+      if (type === 'family' && days >= 3) {
+        itinerary.push('Include a comfortable resort stay and relaxed evening family time.');
+      }
+      if (type === 'student' || type === 'solo') {
+        itinerary.push('Recommend budget-friendly cafés, hostels, and public transport options.');
+      }
+      return itinerary.join('\n');
+    }
+
+    function buildTravelResponse(query) {
+      const text = query.trim().toLowerCase();
+      const destination = extractDestination(text) || 'Goa';
+      const days = extractDays(text) || 3;
+      const budget = extractBudget(text);
+      const travelType = detectTravelType(text) || 'leisure';
+      const travelQuery = isTravelQuery(text);
+      const calcQuery = budget !== null || isMathQuery(text);
+      setActiveTool(travelQuery, calcQuery);
+
+      const budgetData = buildBudgetEstimate(days, travelType);
+      const withinBudget = budget !== null ? budget >= budgetData.total : null;
+      const budgetStatus = budget === null
+        ? `Budget was not explicitly provided. This estimate uses moderate ${destination} travel costs.`
+        : withinBudget
+          ? `The plan fits within the requested budget of ₹${budget.toLocaleString()}.`
+          : `The estimate is ₹${Math.abs(budgetData.total - budget).toLocaleString()} over the requested budget of ₹${budget.toLocaleString()}.`;
+
+      const travelStyle = travelType === 'leisure' ? 'relaxed travel' : `${travelType} travel`;
+      const details = [
+        `Destination: ${destination}`,
+        `Duration: ${days} day${days > 1 ? 's' : ''}`,
+        `Travel type: ${travelStyle}`,
+        budget !== null ? `Budget: ₹${budget.toLocaleString()}` : 'Budget: not specified'
+      ];
+
+      const planText = `AI Travel Plan for ${destination}
+
+${details.join('\n')}
+
+Estimated budget breakdown:
+- Hotel / stay: ₹${budgetData.hotel.toLocaleString()}
+- Travel & local transport: ₹${budgetData.travel.toLocaleString()}
+- Food & local experiences: ₹${budgetData.food.toLocaleString()}
+- Total estimated cost: ₹${budgetData.total.toLocaleString()}
+
+${budgetStatus}
+
+Suggested itinerary:
+${buildItinerary(destination, days, travelType)}
+
+Recommended actions:
+- Book accommodation early to stay within budget.
+- Use local transport or shared rides for savings.
+- Reserve one relaxed day for beach or cultural time.
+
+This travel plan is tailored to feel like a polished AI travel agent demo response.`;
+
+      return { destination, days, budget, travelType, budgetData, planText };
+    }
+
+    function runAgent(query) {
+      const data = buildTravelResponse(query);
+      const steps = [
+        {
+          thought: 'Understand the prompt and identify travel details.',
+          action: 'Extract destination, duration, budget, and trip style.',
+          input: query,
+          observation: `Detected ${data.destination}, ${data.days} day${data.days > 1 ? 's' : ''}, ${data.budget !== null ? `budget ₹${data.budget.toLocaleString()}` : 'no explicit budget'}, ${data.travelType} trip.`
+        },
+        {
+          thought: 'Build a realistic cost estimate for the requested trip.',
+          action: 'Calculate hotel, travel, and food expense categories.',
+          input: `${data.days} days, ${data.travelType} travel`,
+          observation: `Hotel ₹${data.budgetData.hotel.toLocaleString()}, travel ₹${data.budgetData.travel.toLocaleString()}, food ₹${data.budgetData.food.toLocaleString()}.`
+        },
+        {
+          thought: 'Confirm feasibility and match the itinerary to the destination.',
+          action: 'Choose attractions and schedule each day.',
+          input: `${data.destination} highlights and budget`,
+          observation: data.budget !== null
+            ? (data.budget >= data.budgetData.total ? 'Plan is under budget.' : 'Plan is slightly above budget.')
+            : 'Created an estimate without explicit budget input.'
+        },
+        {
+          thought: 'Finish the response with a polished summary.',
+          action: 'Compile the travel itinerary and cost breakdown into the final answer.',
+          input: 'Final travel plan content',
+          observation: 'Generated a believable travel plan for demo and screenshots.'
+        }
+      ];
+
+      stepContainer.innerHTML = '';
+      steps.forEach((step, index) => {
+        setTimeout(() => addStep(step.thought, step.action, step.input, step.observation), 650 * (index + 1));
+      });
+
+      setTimeout(() => {
+        finalOutput.textContent = data.planText;
+        loader.style.display = 'none';
+      }, 650 * (steps.length + 1) + 150);
+    }
+
+    function clearAll() {
+      stepContainer.innerHTML = '';
+      finalOutput.textContent = 'Ready for travel planning...';
+      userInput.value = '';
+      setActiveTool(false, false);
+      loader.style.display = 'none';
+    }
+
+    runBtn.addEventListener('click', () => {
+      const query = userInput.value.trim();
+      if (!query) {
+        finalOutput.textContent = 'Please enter a travel prompt to run the agent.';
+        return;
+      }
+      stepContainer.innerHTML = '';
+      finalOutput.textContent = 'Thinking through the travel plan...';
+      setActiveTool(false, false);
+      loader.style.display = 'flex';
+      setTimeout(() => runAgent(query), 380);
+    });
+
+    clearBtn.addEventListener('click', clearAll);
+    clearAll();
+  </script>
+</body>
+</html>
